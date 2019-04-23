@@ -1,4 +1,4 @@
-package es.bsc.inb.corpus.evalation;
+package es.bsc.inb.corpus.evaluation;
 
 import java.io.File;
 import java.io.FileOutputStream;
