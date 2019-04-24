@@ -90,6 +90,8 @@ public class App3 {
 		    			type="DOSE_FREQUENCY";
 		    		}else if(type.equals("Route")) {
 		    			type="ROUTE_OF_ADMINISTRATION";
+		    		}else if(type.equals("Reason")) {
+		    			type="FINDING";
 		    		}
 		    		String text = data[2];
 		    		features.put("text", text);

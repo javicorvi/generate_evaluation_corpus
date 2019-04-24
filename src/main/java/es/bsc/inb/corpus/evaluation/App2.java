@@ -5,11 +5,18 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
-import com.fasterxml.jackson.core.JsonParser.Feature;
+import com.google.common.base.Strings;
 
 import gate.Factory;
 import gate.FeatureMap;
@@ -30,13 +37,12 @@ public class App2 {
 	 * @param args
 	 */
     public static void main( String[] args ) {
-    	String inputFile = "corpus/corpus_2/ADE-Corpus-V2/DRUG-AE.rel";
-    	String outputDirectoryPath = "corpus/corpus_2/corpus_gate/";
+    	String inputFilePath = "corpus/corpus_2/ADE-Corpus-V2/DRUG-AE.rel";
+    	String inputFilePath2 = "corpus/corpus_2/ADE-Corpus-V2/DRUG-DOSE.rel";
     	
-    	if (!java.nio.file.Files.isRegularFile(Paths.get(inputFile))) {
-    		log.error("Please set the inputDirectoryPath ");
-			System.exit(1);
-    	}
+    	String abstractsPath = "corpus/corpus_2/ADE-Corpus-V2/abstracts/";
+    	
+    	String outputDirectoryPath = "corpus/corpus_2/corpus_gate/";
     	
     	File outputDirectory = new File(outputDirectoryPath);
 	    if(!outputDirectory.exists())
@@ -49,12 +55,127 @@ public class App2 {
 			System.exit(1);
 		}
     	
-    	System.out.println("Wrapper::processTagger :: processing file : " + inputFile);
-		File annotatedFile = new File (inputFile);
-		File outputGATEFile = new File (outputDirectoryPath +  File.separator + annotatedFile.getName().replaceAll(".rel", ".xml"));
-		process(annotatedFile, outputDirectoryPath, outputGATEFile); 
-		
-    	System.out.println("Wrapper::main :: END ");
+    	System.out.println("App1::main :: INIT ");
+    	if (java.nio.file.Files.isRegularFile(Paths.get(inputFilePath))) {
+			File inputFile = new File(inputFilePath);
+			File inputFile2 = new File(inputFilePath2);
+			//process(inputFile, outputDirectoryPath, abstractsPath); 
+			processDoses(inputFile2, outputDirectoryPath); 
+		}else {
+			System.out.println("No File :  " + inputFilePath);
+			System.exit(1);
+		}
+    	System.out.println("App1::main :: END ");
+    }
+    
+    
+    /**
+     * 
+     * @param file
+     * @param outputGATEFile
+     */
+	private static void process(File file,String outputDirectoryPath, String abstractsPath) {
+		try {
+			//Read the input file, and get sentences 
+			BufferedReader br = new BufferedReader(new FileReader(file));
+			String line;
+			
+			gate.Document gateDocument = null;
+			String aux_pmid = "";
+			while ((line = br.readLine()) != null) {
+		    	String[] data = line.split("\\|");
+		    	if(!data[0].equals("313865")){
+		    		if(!aux_pmid.equals(data[0])) {
+			    		if(!aux_pmid.equals("")) {
+			    			java.io.Writer out = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new FileOutputStream(outputDirectoryPath +  File.separator + aux_pmid + ".xml" , false)));
+							out.write(gateDocument.toXml());
+							out.close();
+			    		}
+			    		File plain = new File(abstractsPath+data[0]+".txt");
+			    		gateDocument = Factory.newDocument(plain.toURI().toURL(), "UTF-8");
+			    	}
+			    	FeatureMap features = gate.Factory.newFeatureMap();
+			    	features.put("text",data[2]);
+			    	features.put("original_label", "ADVERSE");
+			    	gateDocument.getAnnotations("EVALUATION").add(new Long(data[3]), new Long(data[4]), "FINDING", features);
+			    	aux_pmid = data[0];
+		    	}
+		    }
+			java.io.Writer out = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new FileOutputStream(outputDirectoryPath +  File.separator + aux_pmid + ".xml" , false)));
+			out.write(gateDocument.toXml());
+			out.close();
+			
+		} catch (Exception e) {
+			System.out.println("Error reading file : " + file );
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+     * 
+     * @param file
+     * @param outputGATEFile
+     */
+	private static void processDoses(File file,String outputDirectoryPath) {
+		try {
+			//Read the input file, and get sentences 
+			BufferedReader br = new BufferedReader(new FileReader(file));
+			String line;
+			
+			gate.Document gateDocument = null;
+			String aux_pmid = "";
+			while ((line = br.readLine()) != null) {
+		    	String[] data = line.split("\\|");
+		    	if(!data[0].equals("313865")){
+		    		if(!aux_pmid.equals(data[0])) {
+			    		if(!aux_pmid.equals("")) {
+			    			java.io.Writer out = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new FileOutputStream(outputDirectoryPath +  File.separator + aux_pmid + ".xml" , false)));
+							out.write(gateDocument.toXml());
+							out.close();
+			    		}
+			    		File xml = new File(outputDirectoryPath+data[0]+".xml");
+			    		gateDocument = Factory.newDocument(xml.toURI().toURL(), "UTF-8");
+			    	}
+			    	FeatureMap features = gate.Factory.newFeatureMap();
+			    	features.put("text",data[2]);
+			    	features.put("original_label", "DOSE");
+			    	gateDocument.getAnnotations("EVALUATION").add(new Long(data[3]), new Long(data[4]), "DOSE_QUANTITY", features);
+			    	aux_pmid = data[0];
+		    	}
+		    }
+			java.io.Writer out = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new FileOutputStream(outputDirectoryPath +  File.separator + aux_pmid + ".xml" , false)));
+			out.write(gateDocument.toXml());
+			out.close();
+			
+		} catch (Exception e) {
+			System.out.println("Error reading file : " + file );
+			e.printStackTrace();
+		}
+	}
+	
+	
+	/**
+	 * 
+	 * @param args
+	 */
+    public static void main_print_pmids( String[] args ) {
+    	String inputFilePath = "corpus/corpus_2/ADE-Corpus-V2/DRUG-AE.rel";
+    	String inputFilePath2 = "corpus/corpus_2/ADE-Corpus-V2/DRUG-DOSE.rel";
+    	String outputDirectoryPath = "corpus/corpus_2/ADE-Corpus-V2/abstracts";
+    	
+    	if (!java.nio.file.Files.isRegularFile(Paths.get(inputFilePath))) {
+    		log.error("Please set the inputDirectoryPath ");
+			System.exit(1);
+    	}
+    	
+    	File outputDirectory = new File(outputDirectoryPath);
+	    if(!outputDirectory.exists())
+	    	outputDirectory.mkdirs();
+    	System.out.println("App2::main_print_pmids :: processing file : " + inputFilePath);
+    	File inputFile = new File(inputFilePath); 
+    	File inputFile2 = new File(inputFilePath2); 
+    	print_pmids(inputFile, inputFile2); 
+		System.out.println("App2::main_print_pmids :: END ");
     }
     
     /**
@@ -62,38 +183,31 @@ public class App2 {
      * @param file
      * @param outputGATEFile
      */
-	private static void process(File annotated, String outputPath, File outputGATEFile) {
+	private static void print_pmids(File annotated, File annotated2) {
 		try {
+			StringJoiner sj = new StringJoiner(",");
+			
 			BufferedReader br = new BufferedReader(new FileReader(annotated));
 		    String line;
-		    Integer i = 0;
+		    Set<String> set = new HashSet<String>();
 		    while ((line = br.readLine()) != null) {
 		    	String[] data = line.split(Pattern.quote("|"));
 		    	String pmid = data[0];
-		    	String sentence = pmid + "|" +data[1];
-		    	gate.Document gateDocument = Factory.newDocument(sentence);
-		    	String ade = data[2];
-		    	String start_ade = data[3];
-		    	String end_ade= data[4];
-		    	String disease = data[5];
-		    	String start_disease = data[6];
-		    	String end_disease = data[7];
-		    	FeatureMap features = gate.Factory.newFeatureMap();
-		    	features.put("text",ade);
-		    	FeatureMap features2 = gate.Factory.newFeatureMap();
-		    	features2.put("text",disease);
-		    	i++;
-		    	try {
-		    		gateDocument.getAnnotations("EVALUATION").add(new Long(start_ade), new Long(end_ade), "FINDING", features);
-		    		gateDocument.getAnnotations("EVALUATION").add(new Long(start_disease), new Long(end_disease), "DISEASE", features2);
-		    	} catch (Exception e) {
-		    		System.out.println(sentence);
-		    		e.printStackTrace();
-		    	}
-		    	java.io.Writer out = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new FileOutputStream(outputPath +  File.separator + pmid + "_" +i, false)));
-				out.write(gateDocument.toXml());
-				out.close();
+		    	set.add(pmid);
 		    }
+		    BufferedReader br2 = new BufferedReader(new FileReader(annotated2));
+		    String line2;
+		    
+		    while ((line2 = br2.readLine()) != null) {
+		    	String[] data = line2.split(Pattern.quote("|"));
+		    	String pmid = data[0];
+		    	set.add(pmid);
+		    }
+		    
+		    for (String object : set) {
+		    	sj.add(object);
+			}
+		    System.out.println(sj.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
