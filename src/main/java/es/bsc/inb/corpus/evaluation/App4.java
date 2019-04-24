@@ -110,7 +110,8 @@ public class App4 {
 								String len = eMention.getAttribute("len");
 								String str = eMention.getAttribute("str");
 								FeatureMap features = Factory.newFeatureMap(); 
-								features.put("value", str);
+								features.put("text", str);
+								features.put("original_label", type);
 								if(type.equals("AdverseReaction")) {
 									type="FINDING";
 								}else if(type.equals("Animal")) {

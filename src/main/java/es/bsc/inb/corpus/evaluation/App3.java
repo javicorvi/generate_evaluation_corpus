@@ -82,9 +82,10 @@ public class App3 {
 		    		String label = data[1];
 		    		String[] label_data = label.split(" ");
 		    		String type = label_data[0];
+		    		features.put("original_label", type);
 		    		if(type.equals("Duration")) {
 		    			type="DOSE_DURATION";
-		    		}else if(type.equals("Dose") | type.equals("Strenght")) {
+		    		}else if(type.equals("Dose") | type.equals("Strength")) {
 		    			type="DOSE_QUANTITY";
 		    		}else if(type.equals("Frequency")) {
 		    			type="DOSE_FREQUENCY";
